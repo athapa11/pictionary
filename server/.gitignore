@@ -1,0 +1,12 @@
+.vs/
+.vscode/
+bin/
+obj/
+Properties/
+
+appsettings.Development.json
+appsettings.json
+server.sln
+.fake
+
+*.http
