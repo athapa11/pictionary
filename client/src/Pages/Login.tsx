@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { authenticate } from '../Services/auth';
 import { useAuth } from '../Context/useAuth';
 
-const Login = () => 
+const Login: React.FC = () => 
 {
   const [nickname, setNickname] = useState<string>('');
   const {user, login} = useAuth();
@@ -25,19 +25,23 @@ const Login = () =>
   }
 
   return (
-    <div className='min-h-screen bg-[#0e1115] text-[#e9eef2]'>
-      <h1></h1>
+    <>
       <form onSubmit={handleLogin}>
         <input 
           className='text-[#e9eef2]' 
           type='text' 
-          placeholder='Enter a name' 
+          placeholder='Name' 
           value={nickname} 
           onChange={handleNameChange}
         />
-        <button type='submit'>Enter</button>
+        <button 
+          className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-4 rounded' 
+          type='submit'
+        >
+          Enter
+        </button>
       </form>
-    </div>
+    </>
   )
 }
 
