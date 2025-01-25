@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 type UserContextType = {
   user: string;
-  login: (nickname: string) => void;
+  login: (name: string) => void;
   logout: () => void;
 };
 
@@ -17,8 +17,8 @@ export const UserProvider = ({children}: Props) =>
   const navigate = useNavigate();
   const [user, setUser] = useState<string>('');
 
-  const login = (nickname: string) => {
-    setUser(nickname);
+  const login = (name: string) => {
+    setUser(name);
     navigate('/chat');
   }
 

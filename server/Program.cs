@@ -10,22 +10,23 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using server.Hubs;
 
-var AllowReactApp = "AllowReactApp";
+
 var builder = WebApplication.CreateBuilder(args);
 
 
 // Add services to the container.
 builder.Services.AddCors(options => 
 {
-  options.AddPolicy(name: AllowReactApp, policy =>
+  options.AddPolicy("AllowSpecificOrigins", policy =>
   {
-    policy.WithOrigins("http://localhost:3000");
-    policy.WithMethods("GET", "POST", "PUT", "DELETE");
-    policy.AllowCredentials();
+    policy.WithOrigins("http://localhost:5173")
+      .AllowAnyHeader()
+      .AllowAnyMethod()
+      .AllowCredentials();
   });
 });
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options => { options.EnableDetailedErrors = true; });
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option => 
@@ -119,9 +120,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.UseCors(AllowReactApp);
+app.UseCors("AllowSpecificOrigins");
 
 app.MapControllers();
-app.MapHub<ChatHub>("/hub");
+app.MapHub<ChatHub>("/hub").RequireCors("AllowSpecificOrigins");
 
 app.Run();

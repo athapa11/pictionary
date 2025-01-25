@@ -1,12 +1,12 @@
 interface Props {
   username: string,
-  time: string,
   content: string,
-  isDelivered: boolean,
   avatar: string,
+  // time: string,
+  // isDelivered: boolean,
 }
 
-const ChatBubble = ({username, time, content, isDelivered, avatar}: Props) => {
+const ChatBubble = ({username, content, avatar}: Props) => {
   
   return (
     <div className="flex items-start gap-2.5 w-full p-6">
@@ -14,10 +14,10 @@ const ChatBubble = ({username, time, content, isDelivered, avatar}: Props) => {
       <div className="flex flex-col w-full leading-1.5">
           <div className="flex items-center space-x-2 rtl:space-x-reverse">
               <span className="text-sm font-semibold text-[#e9eef2]">{username}</span>
-              <span className="text-sm font-normal text-gray-500">{time}</span>
+              {/* <span className="text-sm font-normal text-gray-500">{time}</span> */}
           </div>
           <p className="text-sm font-normal py-2 text-[#e9eef2]">{content}</p>
-          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">{isDelivered ? 'Delivered' : 'Sending'}</span>
+          {/* <span className="text-sm font-normal text-gray-500 dark:text-gray-400">{isDelivered ? 'Delivered' : 'Sending'}</span> */}
       </div>
     </div>
   )
