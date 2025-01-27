@@ -26,6 +26,7 @@ const Login: React.FC = () =>
 
   return (
     <>
+      <h1>Login</h1>
       <form onSubmit={handleLogin}>
         <input 
           className='text-[#e9eef2]' 
