@@ -4,7 +4,9 @@ import { UserProvider } from './Context/useAuth';
 function App() {
   return(
     <UserProvider>
-      <Outlet/>
+      <div className='min-h-screen bg-[#0e1115] text-[#e9eef2]'>
+        <Outlet/>
+      </div>
     </UserProvider>
   )
 }
