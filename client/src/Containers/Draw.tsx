@@ -1,21 +1,20 @@
-import React from 'react'
+import React from 'react';
 import Toolbar from '../Components/Draw/Toolbar';
 import Canvas from '../Components/Draw/Canvas';
-import { useCanvas } from '../Hooks/useCanvas';
+import { useCanvas } from '../Features/useCanvas';
 
 const Draw: React.FC = () => {
   const {
-    canvasRef, tool, setTool,
+    canvasRef, setTool,
     startDraw, draw, stopDraw,
-    startErase,
     updateColour, updateSize, clearCanvas,
   } = useCanvas();
   
   return (
-    <div className='flex flex-col p-10'>
+    <>
       <Canvas 
         canvasRef={canvasRef} 
-        startDraw={tool === 'rubber' ? startErase : startDraw} 
+        startDraw={startDraw} 
         draw={draw} 
         stopDraw={stopDraw}
       />
@@ -25,8 +24,8 @@ const Draw: React.FC = () => {
         updateSize={updateSize} 
         clearCanvas={clearCanvas}
       />
-    </div>
-  )
-}
+    </>
+  );
+};
 
-export default Draw
+export default Draw;
