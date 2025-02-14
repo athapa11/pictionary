@@ -2,25 +2,15 @@ import React from 'react';
 import Draw from '../Containers/Draw';
 import Chat from '../Containers/Chat';
 import Scoreboard from '../Containers/Scoreboard';
-import { useSignalR } from '../Context/useSignalR';
-import { useSession } from '../Context/useSession';
+import Word from '../Containers/Word';
 
 const Room: React.FC = () => {
-  const connection = useSignalR();
-
-  if (!connection) {
-    console.error("no connection");
-    return null;
-  }
-
-  const { session } = useSession();
-
   return (
     <div className="w-screen h-screen flex flex-col items-center p-20">
       <div className="w-[1400px] flex justify-center bg-blue-500 rounded-lg m-2">
         <div className="w-1/8"></div> 
         <div className='flex-grow flex items-center justify-center p-4'>
-          <h1 className='font-semibold tracking-widest text-3xl text-center'>{session.currentWord}</h1>
+          <Word/>
         </div>
         <div className="w-1/4"></div>
       </div>
