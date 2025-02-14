@@ -1,4 +1,4 @@
-import React, { MouseEventHandler } from 'react'
+import React, { MouseEventHandler } from 'react';
 
 interface Props {
   src: string,
@@ -18,7 +18,7 @@ const SizeButton = ({src, onClick, size}: Props) => {
         src={src}
       />
     </button>
-  )
-}
+  );
+};
 
-export default SizeButton
+export default SizeButton;

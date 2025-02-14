@@ -1,4 +1,4 @@
-import React, { MouseEventHandler } from 'react'
+import React, { MouseEventHandler } from 'react';
 
 interface Props {
   src: string,
@@ -13,7 +13,7 @@ const ToolButton = ({src, onClick}: Props) => {
       >
         <img className='w-8 h-8' src={src}/>
     </button>
-  )
-}
+  );
+};
 
-export default ToolButton
+export default ToolButton;

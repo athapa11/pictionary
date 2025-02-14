@@ -1,26 +1,26 @@
-import { ChangeEvent, SyntheticEvent } from 'react'
+import { ChangeEvent, SyntheticEvent } from 'react';
 
 interface Props {
-  message: string,
-  onMessageSubmit: (e:SyntheticEvent) => void,
-  onMessageChange: (e: ChangeEvent<HTMLInputElement>) => void,
+  guess: string,
+  onGuessSubmit: (e:SyntheticEvent) => void,
+  onInputChange: (e: ChangeEvent<HTMLInputElement>) => void,
 }
 
 
-const ChatInput = ({ message, onMessageSubmit, onMessageChange }: Props) => {
+const ChatInput = ({ guess, onGuessSubmit, onInputChange }: Props) => {
   return (
-    <div className='w-full p-6'>
-      <form onSubmit={onMessageSubmit}>
+    <div className='w-full'>
+      <form onSubmit={onGuessSubmit}>
         <input 
           className='w-full p-2 rounded-lg outline-none bg-[#0d1826] text-[#e9eef2]' 
-          value={message} 
+          value={guess} 
           type='text' 
           placeholder='Type here'
-          onChange={onMessageChange}
+          onChange={onInputChange}
         />
       </form>
     </div>
-  )
-}
+  );
+};
 
-export default ChatInput
+export default ChatInput;

@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 interface Props {
   canvasRef: React.MutableRefObject<HTMLCanvasElement | null>,
@@ -10,16 +10,14 @@ interface Props {
 const Canvas = ({ canvasRef, startDraw, draw, stopDraw }: Props) => {
   return (
     <canvas 
-      className='block rounded-lg bg-white cursor-crosshair'
-      ref={canvasRef} 
-      width={1000}
-      height={750}
+      className='w-full h-full rounded-lg bg-white cursor-crosshair'
+      ref={canvasRef}
       onMouseDown={startDraw}
       onMouseMove={draw}
       onMouseUp={stopDraw}
       onMouseLeave={stopDraw}
     />
-  )
-}
+  );
+};
 
-export default Canvas
+export default Canvas;
