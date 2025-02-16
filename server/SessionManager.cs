@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
+using server.Interfaces;
 using server.Models;
 
 namespace server
 {
-	public class SessionManager
+	public class SessionManager : ISessionManager
 	{
 		private readonly ConcurrentDictionary<string, Session> ActiveSessions = new();
 
