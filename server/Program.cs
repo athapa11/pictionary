@@ -1,11 +1,13 @@
 using Microsoft.OpenApi.Models;
+using server;
 using server.Hubs;
+using server.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddSingleton<server.SessionManager>();
-builder.Services.AddSignalR().AddHubOptions<DrawHub>(options => {
+builder.Services.AddSingleton<ISessionManager, SessionManager>();
+builder.Services.AddSignalR().AddHubOptions<PictionaryHub>(options => {
     options.EnableDetailedErrors = true;
 });
 
@@ -61,6 +63,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.MapHub<DrawHub>("/hub");
+app.MapHub<PictionaryHub>("/hub");
 app.MapControllers();
 app.Run();
