@@ -2,11 +2,11 @@ import React from 'react'
 import { useSession } from '../Context/useSession';
 
 const Scoreboard: React.FC = () => {
-  const { session } = useSession();
+  const { players } = useSession();
 
-  const players = Object.values(session.players);
+  const playersArr = Object.values(players);
   
-  const playersRanked = players.sort((a, b) => b.score - a.score);
+  const playersRanked = playersArr.sort((a, b) => b.score - a.score);
 
   return (
     <>

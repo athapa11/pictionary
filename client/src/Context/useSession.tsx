@@ -17,6 +17,7 @@ interface Session {
 }
 interface SessionContextType {
   session: Session;
+  players: Player[];
   currentPlayer: Player;
   joinSession: () => Promise<void>;
   createSession: (playerName: string) => Promise<void>;
@@ -36,6 +37,7 @@ const defaultPlayer: Player = {
 };
 const SessionContext = createContext<SessionContextType>({
   session: defaultSession,
+  players: [],
   currentPlayer: defaultPlayer,
   joinSession: async () => {},
   createSession: async () => {}
@@ -56,6 +58,7 @@ export const SessionProvider = ({children}: {children: React.ReactNode}) =>
     connection.on('PlayerJoined', (player: Player) => {
       setPlayers((prev) => [...prev, player]);
       setCurrentPlayer(player);
+      console.log("Debug: currentPlayer =", currentPlayer);
     });
 
     connection.on('PlayerLeft', (player: Player) => {
@@ -109,7 +112,7 @@ export const SessionProvider = ({children}: {children: React.ReactNode}) =>
   }
 
   return(
-    <SessionContext.Provider value={{ session, currentPlayer, joinSession, createSession }}>
+    <SessionContext.Provider value={{ session, players, currentPlayer, joinSession, createSession }}>
       {children}
     </SessionContext.Provider>
   );
