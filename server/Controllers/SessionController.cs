@@ -18,20 +18,17 @@ namespace server
 		[HttpPost("create-session")]
 		public IActionResult CreateSession([FromBody] CreateRequest request)
 		{
-			var session = _sessionManager.CreateSession();
-			_sessionManager.AddPlayerToSession(session.SessionId, request.PlayerName, out var player);
-			_sessionManager.SetDrawer(session.SessionId);
-
+			var session = _sessionManager.CreateSession(request.PlayerName);
 			return Ok(session);
 		}
 
 
-		[HttpPost("join-session/{sessionId}/{playerName}")]
-		public IActionResult JoinSession(string sessionId, string playerName)
+		[HttpPost("join-session/{sessionId}")]
+		public IActionResult JoinSession(string sessionId, [FromBody] JoinRequest request)
 		{
-			if(_sessionManager.AddPlayerToSession(sessionId, playerName, out var player))
+			if(_sessionManager.AddPlayerToSession(sessionId, request.PlayerName, out var player, out var session))
 			{
-				return Ok(player);
+				return Ok(session);
 			}
 			else{
 				return NotFound("Session not found");
@@ -42,24 +39,18 @@ namespace server
 		[HttpGet("{sessionId}")]
 		public IActionResult GetSession(string sessionId)
 		{
-			if(_sessionManager.GetSession(sessionId, out var session)){
-				return Ok(session);
-			}
-			else{
-				return NotFound("Session not found");
-			}
+			return _sessionManager.GetSession(sessionId, out var session)
+				? Ok(session)
+				: NotFound("Session not found");
 		}
 
 
 		[HttpDelete("{sessionId}")]
 		public IActionResult DeleteSession(string sessionId)
 		{
-			if(_sessionManager.DeleteSession(sessionId)){
-				return Ok("Session deleted");
-			}
-			else{
-				return NotFound("Session not found");
-			}
+			return _sessionManager.DeleteSession(sessionId)
+				? Ok("Session deleted")
+				: NotFound("Session not found");
 		}
 	}
 }

@@ -7,17 +7,57 @@ namespace server
 	public class SessionManager : ISessionManager
 	{
 		private readonly ConcurrentDictionary<string, Session> ActiveSessions = new();
+		private static readonly Random _random = new Random();
 
-		public Session CreateSession()
-    {
+		private string GenerateRandomWord()
+		{
+			string[] words = { "Cat", "Sun", "Tree", "Car", "House" };
+			return words[_random.Next(words.Length)];
+    }
+
+		public void SetDrawer(string sessionId){
+			if(ActiveSessions.TryGetValue(sessionId, out var session) && session.Players.Count > 0)
+			{
+				// randomise drawer and current word
+				var randomPlayer = session.Players.Values.ElementAt(_random.Next(session.Players.Count));
+				session.DrawerId = randomPlayer.Id;
+				session.CurrentWord = GenerateRandomWord();
+			}
+		}
+
+		// for signalr logic
+		public Session? GetCurrentSessionState(string sessionId)
+		{
+			ActiveSessions.TryGetValue(sessionId, out var session);
+			return session;
+		}
+
+		public Session CreateSession(string playerName)
+		{
 			var sessionId = Guid.NewGuid().ToString();
-			var session = new Session{ SessionId = sessionId };
-			if(ActiveSessions.TryAdd(sessionId, session))
+
+			var player = new Player
+			{
+				Id = Guid.NewGuid().ToString(),
+				Name = playerName
+			};
+
+			var session = new Session
+			{
+				SessionId = sessionId,
+				DrawerId = player.Id,
+				CurrentWord = GenerateRandomWord()
+			};
+
+			session.Players.TryAdd(player.Id, player);
+
+			if (ActiveSessions.TryAdd(sessionId, session))
 			{
 				return session;
 			}
-			else{
-				throw new Exception("On the insane coincidence of a duplicate id");
+			else
+			{
+				throw new Exception("On the insane coincidence of a duplicate session id");
 			}
 		}
 			
@@ -43,28 +83,23 @@ namespace server
 		}
 
 
-		private string GenerateRandomWord()
+		public bool AddPlayerToSession(string sessionId, string playerName, out Player? player, out Session? session)
 		{
-			string[] words = { "Cat", "Sun", "Tree", "Car", "House" };
-			int randomIndex = new Random().Next(words.Length);
-			return words[randomIndex];
-    }
-
-
-		public bool AddPlayerToSession(string sessionId, string playerName, out Player? player)
-		{
-			if(ActiveSessions.TryGetValue(sessionId, out var session))
+			session = null;
+			if (ActiveSessions.TryGetValue(sessionId, out var foundSession))
 			{
 				player = new Player
 				{
 					Id = Guid.NewGuid().ToString(),
 					Name = playerName
 				};
-				session.Players.TryAdd(player.Id, player);
+				foundSession.Players.TryAdd(player.Id, player);
 				// session.Scores.TryAdd(player.Id, 0);
+				session = foundSession; // to let the method return updated session as well
 				return true;
 			}
-			else{
+			else
+			{
 				player = null;
 				return false;
 			}
@@ -83,31 +118,20 @@ namespace server
 				return true; 
 			}
 			else{
+				Console.WriteLine($"RemovePlayer failed: session {sessionId} not found");
 				return false;
 			}
 		}
 
-
-		public void SetDrawer(string sessionId){
-			if(ActiveSessions.TryGetValue(sessionId, out var session))
-			{
-				// randomise drawer and current word
-				var randomise = new Random();
-				var randomPlayer = session.Players.Values.ElementAt(randomise.Next(session.Players.Count));
-				session.DrawerId = randomPlayer.Id;
-				session.CurrentWord = GenerateRandomWord();
-			}
-		}
-
-		public bool UpdateScore(string sessionId, string playerId, int points)
-		{
-			if(ActiveSessions.TryGetValue(sessionId, out var session)){
-				// session.Scores.AddOrUpdate(playerId, points, (_, scoreNow) => scoreNow + points);
-				return true;
-			}
-			else{
-				return false;
-			}
-		}
+		// public bool UpdateScore(string sessionId, string playerId, int points)
+		// {
+		// 	if(ActiveSessions.TryGetValue(sessionId, out var session)){
+		// 		// session.Scores.AddOrUpdate(playerId, points, (_, scoreNow) => scoreNow + points);
+		// 		return true;
+		// 	}
+		// 	else{
+		// 		return false;
+		// 	}
+		// }
 	}
 }

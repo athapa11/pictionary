@@ -17,12 +17,19 @@ namespace server.Hubs
 
     public async Task JoinSession(string sessionId, string playerName)
     {
-      if(_sessionManager.AddPlayerToSession(sessionId, playerName, out var player))
+      if (_sessionManager.GetSession(sessionId, out var session))
       {
-        await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-        if(_sessionManager.GetSession(sessionId, out var session))
+        var player = session!.Players.Values.FirstOrDefault(p => p.Name == playerName);
+
+        if (player != null)
         {
+          await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
           await Clients.Group(sessionId).SendAsync("PlayerJoined", player, session);
+          Console.WriteLine($"Player {player!.Name} added. {session!.Players.Count} players are now active.");
+        }
+        else
+        {
+          Console.WriteLine("Failed to broadcast player joining");
         }
       }
     }
@@ -41,19 +48,28 @@ namespace server.Hubs
 
 
     // process word guess
+    // public async Task SendGuess(string sessionId, string playerId, string guess)
+    // {
+    //   if(_sessionManager.GetSession(sessionId, out var session)) 
+    //   {
+    //     var player = session.Players.Values.FirstOrDefault(p => p.Id == playerId);
+    //     if(string.Equals(guess, session.CurrentWord, StringComparison.OrdinalIgnoreCase))
+    //     {
+    //       player.Score += 10;
+    //     await Clients.Group(sessionId).SendAsync("CorrectGuess", player, guess);
+    //     }
+    //     else{
+    //       await Clients.Group(sessionId).SendAsync("WrongGuess", player, guess);
+    //     }
+    //   }
+    // }
+
     public async Task SendGuess(string sessionId, string playerId, string guess)
     {
       if(_sessionManager.GetSession(sessionId, out var session)) 
       {
-        var player = session.Players.Values.FirstOrDefault(p => p.Id == playerId);
-        if(string.Equals(guess, session.CurrentWord, StringComparison.OrdinalIgnoreCase))
-        {
-          player.Score += 10;
-        await Clients.Group(sessionId).SendAsync("CorrectGuess", player, guess);
-        }
-        else{
-          await Clients.Group(sessionId).SendAsync("WrongGuess", player, guess);
-        }
+        var player = session?.Players.Values.FirstOrDefault(p => p.Id == playerId);
+        await Clients.Group(sessionId).SendAsync("CorrectGuess", player?.Name, guess);
       }
     }
 
