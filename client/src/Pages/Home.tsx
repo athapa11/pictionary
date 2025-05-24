@@ -1,56 +1,68 @@
 import React, { useState } from 'react'
 import { validate } from '../Services/validate';
 import { useSession } from '../Context/useSession';
-import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 const Login: React.FC = () => 
 {
-  const [nickname, setNickname] = useState<string>('');
-  const {createSession} = useSession();
-  const navigate = useNavigate();
+  const { sessionId } = useParams();
+  const [name, setName] = useState<string>('');
+  const { joinSession, createSession } = useSession();
 
-  const handleCreateSession = (event: React.FormEvent<HTMLFormElement>) => 
+  const handleCreate = (event: React.MouseEvent<HTMLButtonElement>) => 
   {
     event.preventDefault();
-    if(validate(nickname))
-    {
-      createSession(nickname);
-      navigate('/room');
+    if(validate(name)){
+      createSession(name);
     }
     else{
-      alert('Nickname cannot be empty');
+      alert('Nickname invalid');
     }
   };
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNickname(e.target.value);
-  }
+  const handleJoin = (event: React.MouseEvent<HTMLButtonElement>) =>
+  {
+    event.preventDefault();
+    if(validate(name)){
+      // create room if a session doesnt already exist
+      console.log("session id =", sessionId);
+      if(!sessionId) { 
+        alert('session not found');
+      } 
+      else{
+        joinSession(name, sessionId);
+      }
+    }
+    else{
+      alert('Nickname invalid');
+    }
+  };
 
   return (
     <div className='flex justify-center items-center h-screen'>
-      <form onSubmit={handleCreateSession} className='flex flex-col gap-4'>
+      <form className='flex flex-col gap-4'>
         <input 
           className='text-[#e9eef2]' 
           type='text' 
           placeholder='Nickname' 
-          value={nickname} 
-          onChange={handleNameChange}
+          value={name} 
+          onChange={(e) => setName(e.target.value)}
         />
         <button 
           className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-4 rounded' 
-          type='submit'
+          onClick={handleJoin}
         >
-          Play
+          Join
         </button>
         <button 
           className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-4 rounded' 
-          type='submit'
+          onClick={handleCreate}
         >
-          Create Room
+          Create Game
         </button>
       </form>
     </div>
-  )
-}
+  );
+};
 
 export default Login

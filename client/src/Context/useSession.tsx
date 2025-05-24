@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { useSignalR } from './useSignalR';
 import axios from 'axios';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 
 interface Player {
@@ -18,8 +18,8 @@ interface Session {
 interface SessionContextType {
   session: Session;
   players: Player[];
-  currentPlayer: Player;
-  joinSession: () => Promise<void>;
+  currentPlayer: Player | null;
+  joinSession: (playerName: string, sessionId: string) => Promise<void>;
   createSession: (playerName: string) => Promise<void>;
 }
 
@@ -48,68 +48,99 @@ export const SessionProvider = ({children}: {children: React.ReactNode}) =>
 {
   const navigate = useNavigate();
   const connection = useSignalR();
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [currentPlayer, setCurrentPlayer] = useState<Player>(defaultPlayer);
+
   const [session, setSession] = useState(defaultSession);
-  const { sessionId, playerName } = useParams();
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const BASE_API_URL = 'http://localhost:5162/api/session';
 
-  useEffect(() => {
-    connection.on('PlayerJoined', (player: Player) => {
-      setPlayers((prev) => [...prev, player]);
-      setCurrentPlayer(player);
-      console.log("Debug: currentPlayer =", currentPlayer);
-    });
+  const registerHandlers = (connection: signalR.HubConnection) => 
+  {
+    const onPlayerJoined = (player: Player, session: Session) => {
+      console.log("PlayerJoined event received", player);
 
-    connection.on('PlayerLeft', (player: Player) => {
-      setPlayers((prev) => prev.filter((p) => p !== player));
-    });
+      setSession(session);
+      setPlayers(session.players ?? []);
+    };
 
-    return () => {
-      connection.off('PlayerJoined');
-      connection.off('PlayerLeft');
-    }
-  }, [connection]);
-
-  useEffect(() => {
-    // redirect to homepage if page
-    navigate('/');
-  }, [navigate]);
-
-  const joinSession = async () => {
-    if(sessionId && playerName)
-    {
-      try{
-        await axios.post(
-          `${BASE_API_URL}/join-session/${sessionId}/${playerName}`, 
-          { playerName }, 
-          { headers: { "Content-Type": "application/json" } }
-        );
-      }
-      catch(error){
-        console.error("Error creating session:", error);
-      }
-    }
-    else{
-      console.error("Session id or player name not found");
-    }
+    const onPlayerLeft = (player: Player) => {
+      setPlayers((prev) => prev.filter((p) => p.id !== player.id));
+      setCurrentPlayer((prev) => (prev && prev.id === player.id ? null : prev)); // remove current player
+    };
+    
+    connection.off("PlayerJoined");
+    connection.off("PlayerLeft");
+    connection.on('PlayerJoined', onPlayerJoined);
+    connection.on('PlayerLeft', onPlayerLeft);
   };
 
   const createSession = async (playerName: string) => {
-    try{
+    try {
       const response = await axios.post(
         `${BASE_API_URL}/create-session`, 
         { playerName }, 
         { headers: { "Content-Type": "application/json" } }
       );
-      console.log(response.data);
-      setSession(response.data);
-      setPlayers(response.data.players);
+
+      console.log('response: ', response.data);
+
+      if(response.data) {
+        const sessionId = response.data.sessionId;
+        const players: Player[] = Object.values(response.data.players ?? {});
+
+        setCurrentPlayer(players.find((p: Player) => p.name === playerName) || null);
+
+        if (connection && connection.state === "Connected") {
+          registerHandlers(connection);
+          await connection.invoke("JoinSession", sessionId, playerName);
+        }
+
+        navigate(`/room/${sessionId}`);
+      }
     }
     catch(error: any){
       console.error("Error creating session:", error);
     }
   }
+
+
+  const joinSession = async (playerName: string, sessionId: string) => 
+  {
+    if(!sessionId || !playerName) {
+      console.error("Missing session id or player name");
+      return;
+    }
+
+    try{
+      console.log("payload contents:", JSON.stringify({ playerName }));
+
+      const response = await axios.post(
+        `${BASE_API_URL}/join-session/${sessionId}`, 
+        { playerName }, 
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("✅ API response:", response.data);
+
+      if(response.data)
+      {
+        const players: Player[] = Object.values(response.data.players ?? {});
+
+        setCurrentPlayer(players.find((p: Player) => p.name === playerName) || null);
+
+        if (connection && connection.state === "Connected") {
+          registerHandlers(connection);
+          await connection.invoke("JoinSession", sessionId, playerName);
+        }
+        
+        navigate(`/room/${sessionId}`);
+
+        console.log("All players =", players);
+      }
+    }catch(error){
+      console.error("Error creating session:", error);
+    }
+  };
 
   return(
     <SessionContext.Provider value={{ session, players, currentPlayer, joinSession, createSession }}>
