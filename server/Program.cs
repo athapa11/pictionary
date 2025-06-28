@@ -1,11 +1,17 @@
 using Microsoft.OpenApi.Models;
-using server;
 using server.Hubs;
-using server.Interfaces;
+using server.Models;
+using server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+var CLIENT_URL = builder.Configuration["VITE_CLIENT_URL"];
+if (string.IsNullOrWhiteSpace(CLIENT_URL))
+{
+    Console.WriteLine("client url not set");
+}
 
 // Add services to the container.
+builder.Services.AddSingleton<Session>();
 builder.Services.AddSingleton<ISessionManager, SessionManager>();
 builder.Services.AddSignalR().AddHubOptions<PictionaryHub>(options => {
     options.EnableDetailedErrors = true;
@@ -15,7 +21,7 @@ builder.Services.AddCors(options =>
 {
   options.AddPolicy("AllowSpecificOrigins", policy =>
   {
-    policy.WithOrigins("http://localhost:5173")
+    policy.WithOrigins(CLIENT_URL!)
       .AllowAnyHeader()
       .AllowAnyMethod()
       .AllowCredentials();
