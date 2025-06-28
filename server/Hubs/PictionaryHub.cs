@@ -1,8 +1,6 @@
-using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
-using server.DTOs;
-using server.Interfaces;
 using server.Models;
+using server.Services;
 
 namespace server.Hubs
 {
@@ -10,73 +8,76 @@ namespace server.Hubs
   {
     private readonly ISessionManager _sessionManager;
 
-    public PictionaryHub(ISessionManager sessionManager){
+    public PictionaryHub(ISessionManager sessionManager)
+    {
       _sessionManager = sessionManager;
     }
+
+    public async Task Join(string playerName)
+    {
+      _sessionManager.AddPlayer(Context.ConnectionId, playerName);
+
+      var roster = _sessionManager.GetPlayers().ToList();
+      var player = _sessionManager.GetPlayer(Context.ConnectionId);
+
+      Console.WriteLine($"there are now {roster.Count} players");
+
+      // broadcaster new players list
+      await Clients.All.SendAsync("PlayerJoined", player, roster);
+      Console.WriteLine($"Player {player?.Name} added. {roster.Count} players are now active.");
+
+      if (_sessionManager.CanStartRound())
+      {
+        await StartSession();
+      }
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+      var leaver = _sessionManager.GetPlayer(Context.ConnectionId);
+      _sessionManager.RemovePlayer(Context.ConnectionId);
+
+      if (leaver != null) {
+        var roster = _sessionManager.GetPlayers().ToList();
+        Console.WriteLine($"Player {leaver.Name} disconnected.");
+        await Clients.All.SendAsync("PlayerLeft", leaver.Name, roster);
+      }
+
+      await base.OnDisconnectedAsync(exception);
+    }
+
+
+    public async Task SendGuess(string guess) {
+      var player = _sessionManager.GetPlayer(Context.ConnectionId);
+      var isCorrect = _sessionManager.CheckGuess(Context.ConnectionId, guess);
+      var scores = _sessionManager.GetPlayers().ToList();
+      
+      if (isCorrect) {
+        await Clients.Client(Context.ConnectionId).SendAsync("CorrectGuess", player!.Name, scores);
+      }
+      else {
+        await Clients.All.SendAsync("WrongGuess", player!.Name, guess);
+      }
+    }
     
-
-    public async Task JoinSession(string sessionId, string playerName)
-    {
-      if (_sessionManager.GetSession(sessionId, out var session))
-      {
-        var player = session!.Players.Values.FirstOrDefault(p => p.Name == playerName);
-
-        if (player != null)
-        {
-          await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-          await Clients.Group(sessionId).SendAsync("PlayerJoined", player, session);
-          Console.WriteLine($"Player {player!.Name} added. {session!.Players.Count} players are now active.");
-        }
-        else
-        {
-          Console.WriteLine("Failed to broadcast player joining");
-        }
-      }
-    }
-
-    public async Task LeaveSession(string sessionId, string playerId)
-    {
-      if(_sessionManager.RemovePlayer(sessionId, playerId))
-      {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, sessionId);
-        if(_sessionManager.GetSession(sessionId, out var session)) // find session to update
-        {
-          await Clients.Group(sessionId).SendAsync("PlayerLeft", session);
-        }
-      }
-    }
-
-
-    // process word guess
-    // public async Task SendGuess(string sessionId, string playerId, string guess)
-    // {
-    //   if(_sessionManager.GetSession(sessionId, out var session)) 
-    //   {
-    //     var player = session.Players.Values.FirstOrDefault(p => p.Id == playerId);
-    //     if(string.Equals(guess, session.CurrentWord, StringComparison.OrdinalIgnoreCase))
-    //     {
-    //       player.Score += 10;
-    //     await Clients.Group(sessionId).SendAsync("CorrectGuess", player, guess);
-    //     }
-    //     else{
-    //       await Clients.Group(sessionId).SendAsync("WrongGuess", player, guess);
-    //     }
-    //   }
-    // }
-
-    public async Task SendGuess(string sessionId, string playerId, string guess)
-    {
-      if(_sessionManager.GetSession(sessionId, out var session)) 
-      {
-        var player = session?.Players.Values.FirstOrDefault(p => p.Id == playerId);
-        await Clients.Group(sessionId).SendAsync("CorrectGuess", player?.Name, guess);
-      }
-    }
-
-
     // broadcast drawing
-    public async Task SendDrawing(string sessionId, Drawing drawing){
-      await Clients.Group(sessionId).SendAsync("ReceiveDrawing", drawing);
+    public async Task SendDrawing(Drawing drawing) {
+      await Clients.Others.SendAsync("GetDrawing", drawing);
+    }
+
+    public async Task StartSession()
+    {
+      _sessionManager.StartRound();
+      var drawer = _sessionManager.GetDrawer();
+      var word = _sessionManager.GetWord();
+
+      Console.WriteLine($"drawer is {drawer.Name}, word is {word}");
+
+      // tell drawer
+      await Clients.Client(drawer.ConnectionId).SendAsync("StartDrawing", word);
+
+      // tell guessers
+      await Clients.AllExcept(drawer.ConnectionId).SendAsync("StartGuessing", drawer.Name);
     }
   }
 }

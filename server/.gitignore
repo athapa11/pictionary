@@ -10,3 +10,5 @@ server.sln
 .fake
 
 *.http
+
+.env
