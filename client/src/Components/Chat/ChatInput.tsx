@@ -12,7 +12,7 @@ const ChatInput = ({ guess, onGuessSubmit, onInputChange }: Props) => {
     <div className='w-full'>
       <form onSubmit={onGuessSubmit}>
         <input 
-          className='w-full p-2 rounded-lg outline-none bg-[#0d1826] text-[#e9eef2]' 
+          className='w-full p-2 rounded-lg outline-none bg-white text-[#0e1115]' 
           value={guess} 
           type='text' 
           placeholder='Type here'
