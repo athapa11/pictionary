@@ -1,68 +1,60 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import * as signalR from "@microsoft/signalr";
 
 const SignalRContext = createContext<signalR.HubConnection>({} as signalR.HubConnection);
+const hubUrl = import.meta.env.VITE_SERVER_URL;
 
 export const SignalRProvider = ({children}: {children: React.ReactNode}) => 
 {
-  const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+	const [ready, setReady] = useState(false);
 
   useEffect(() => {
-		const newConnection = new signalR.HubConnectionBuilder()
-			.withUrl("http://localhost:5162/hub", {
+		const connection = new signalR.HubConnectionBuilder()
+			.withUrl(hubUrl, {
 				withCredentials: true
 			})
 			.withAutomaticReconnect()
 			.configureLogging(signalR.LogLevel.Information)
 			.build();
-		
-		setConnection(newConnection);
-			
-		const startConnection = async (): Promise<void> => {
-			try {
-				await new Promise(resolve => setTimeout(resolve, 500)); // Delay to avoid race condition
-				if(newConnection.state === signalR.HubConnectionState.Disconnected)
-				{
-					await newConnection.start();
-					
-					console.log("Connected to SignalR");
-				}else{
-					console.error("Current Connection state: ", newConnection.state);
-				}
-			} catch (error) {
-				console.error("Error establishing SignalR connection: ", error);
-				setTimeout(startConnection, 3000); 
-			}
-		};
 
-		startConnection();
+		connectionRef.current = connection;
 
-		// log connection state changes
-		newConnection.onreconnected(() => {
-			console.log("Reconnected to SignalR");
-		});
-		newConnection.onreconnecting((error) => {
-			console.log("Reconnecting to SignalR", error);
-		});
-		newConnection.onclose((error) => {
+		connection.start()
+		.then(() => {
+			console.log("Connected to SignalR");
+			setReady(true);
+		})
+		.catch((error) => {
+			console.error("Connection to SignalR failed: ", error);
+			setTimeout(() => connection.start(), 3000);
+		})
+
+		connection.onclose((error) => {
 			console.error("SignalR connection closed: ", error);
 		});
-
-    // cleanup connection on component unmount
-    return () => {
-      newConnection.stop();
+		
+    return () => { 
+      connection.stop(); // connection cleanup on unmount
     };
   }, []);
 
-	if(!connection){
-		return <div>Waiting for connection before rendering...</div>
+	// prevent rendering null connection
+	if(!ready || !connectionRef.current) {
+		return null;
 	}
   
   return (
-    <SignalRContext.Provider value={ connection }> 
+    <SignalRContext.Provider value={ connectionRef.current }> 
       { children } 
     </SignalRContext.Provider>
   );
 };
 
-export const useSignalR = (): signalR.HubConnection => useContext(SignalRContext);
+export const useSignalR = (): signalR.HubConnection => {
+	const connection = useContext(SignalRContext);
+	if(!connection){
+		throw new Error("SignalR connection not established");
+	}
+	return connection;
+};

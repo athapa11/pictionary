@@ -1,154 +1,98 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useSignalR } from './useSignalR';
-import axios from 'axios';
 import { useNavigate } from 'react-router';
+import { HubConnectionState } from '@microsoft/signalr';
 
 
-interface Player {
-  id: string;
+export interface Player {
   name: string;
   score: number;
 }
-interface Session {
-  id: string;
-  currentWord: string;
-  drawerId: string;
-  players: Player[];
-}
+
+type Role = 'drawer' | 'guesser' | null;
+
 interface SessionContextType {
-  session: Session;
   players: Player[];
   currentPlayer: Player | null;
-  joinSession: (playerName: string, sessionId: string) => Promise<void>;
-  createSession: (playerName: string) => Promise<void>;
+  word: string | null;
+  role: Role;
+  joinSession: (playerName: string) => void;
 }
 
-
-const defaultSession: Session = {
-  id: '', 
-  currentWord: '', 
-  drawerId: '', 
-  players: []
-};
-const defaultPlayer: Player = {
-  id: '', 
-  name: 'default',
-  score: 0
-};
-const SessionContext = createContext<SessionContextType>({
-  session: defaultSession,
-  players: [],
-  currentPlayer: defaultPlayer,
-  joinSession: async () => {},
-  createSession: async () => {}
-});
+const SessionContext = createContext<SessionContextType | null>(null);
 
 
 export const SessionProvider = ({children}: {children: React.ReactNode}) => 
 {
-  const navigate = useNavigate();
   const connection = useSignalR();
-
-  const [session, setSession] = useState(defaultSession);
+  const navigate = useNavigate();
+  
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
-  const BASE_API_URL = 'http://localhost:5162/api/session';
+  const [role, setRole] = useState<Role>(null);
+  const [word, setWord] = useState<string | null>(null);
 
-  const registerHandlers = (connection: signalR.HubConnection) => 
+  useEffect(() => {
+    if (connection?.state === HubConnectionState.Connected && !currentPlayer) {
+      navigate('/', { replace: true });
+    }
+  }, [connection, currentPlayer, navigate]);
+  
+  useEffect(() => 
   {
-    const onPlayerJoined = (player: Player, session: Session) => {
-      console.log("PlayerJoined event received", player);
+    if(!connection) return;
 
-      setSession(session);
-      setPlayers(session.players ?? []);
+    const onPlayerJoined = (joiner: Player, players: Player[]) => {
+      setCurrentPlayer(joiner);
+      setPlayers(players);
+      navigate('/room'); // assuming global room for now
     };
 
-    const onPlayerLeft = (player: Player) => {
-      setPlayers((prev) => prev.filter((p) => p.id !== player.id));
-      setCurrentPlayer((prev) => (prev && prev.id === player.id ? null : prev)); // remove current player
+    const onPlayerLeft = (leaver: Player, players: Player[]) => {
+      setPlayers(players);
+      setCurrentPlayer(prev => 
+        (prev && prev.name === leaver.name ? null : prev)); // remove current player
     };
-    
-    connection.off("PlayerJoined");
-    connection.off("PlayerLeft");
-    connection.on('PlayerJoined', onPlayerJoined);
-    connection.on('PlayerLeft', onPlayerLeft);
-  };
 
-  const createSession = async (playerName: string) => {
-    try {
-      const response = await axios.post(
-        `${BASE_API_URL}/create-session`, 
-        { playerName }, 
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      console.log('response: ', response.data);
-
-      if(response.data) {
-        const sessionId = response.data.sessionId;
-        const players: Player[] = Object.values(response.data.players ?? {});
-
-        setCurrentPlayer(players.find((p: Player) => p.name === playerName) || null);
-
-        if (connection && connection.state === "Connected") {
-          registerHandlers(connection);
-          await connection.invoke("JoinSession", sessionId, playerName);
-        }
-
-        navigate(`/room/${sessionId}`);
-      }
+    const onStartDrawing = (word: string) => {
+      setRole('drawer');
+      setWord(word);
     }
-    catch(error: any){
-      console.error("Error creating session:", error);
+
+    const onStartGuessing = () => {
+      setRole('guesser');
+      setWord(null);
     }
+
+    connection.on("PlayerJoined", onPlayerJoined);
+    connection.on("PlayerLeft", onPlayerLeft);
+    connection.on("StartDrawing", onStartDrawing);
+    connection.on("StartGuessing", onStartGuessing);
+
+    return () => {
+      connection.off("PlayerJoined");
+      connection.off("PlayerLeft");
+      connection.off("StartDrawing");
+      connection.off("StartGuessing");
+    };
+  }, [connection]);
+
+  // methods to invoke signalr hub
+  const joinSession = (name: string) => {
+    connection.invoke('Join', name);
   }
 
-
-  const joinSession = async (playerName: string, sessionId: string) => 
-  {
-    if(!sessionId || !playerName) {
-      console.error("Missing session id or player name");
-      return;
-    }
-
-    try{
-      console.log("payload contents:", JSON.stringify({ playerName }));
-
-      const response = await axios.post(
-        `${BASE_API_URL}/join-session/${sessionId}`, 
-        { playerName }, 
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      console.log("✅ API response:", response.data);
-
-      if(response.data)
-      {
-        const players: Player[] = Object.values(response.data.players ?? {});
-
-        setCurrentPlayer(players.find((p: Player) => p.name === playerName) || null);
-
-        if (connection && connection.state === "Connected") {
-          registerHandlers(connection);
-          await connection.invoke("JoinSession", sessionId, playerName);
-        }
-        
-        navigate(`/room/${sessionId}`);
-
-        console.log("All players =", players);
-      }
-    }catch(error){
-      console.error("Error creating session:", error);
-    }
-  };
-
   return(
-    <SessionContext.Provider value={{ session, players, currentPlayer, joinSession, createSession }}>
+    <SessionContext.Provider value={{ players, currentPlayer, role, word, joinSession }}>
       {children}
     </SessionContext.Provider>
   );
 };
 
-export const useSession = () => {
-  return useContext(SessionContext);
+export const useSession = (): SessionContextType => {
+  const context = useContext(SessionContext);
+  if(!context) { 
+    throw new Error('useSession cant be null')
+  }
+  return context;
 }
