@@ -2,13 +2,10 @@ namespace server.Models
 {
 	public class Drawing
 	{
-		public string Tool { get; set; } = string.Empty;
-		public int Xaxis { get; set; }
-
-		public int Yaxis { get; set; }
-
+		public float X { get; set; }
+		public float Y { get; set; }
+		public string Type { get; set; } = string.Empty;
 		public string Colour { get; set; } = string.Empty;
-
 		public int Size { get; set; }
 	}
 }
