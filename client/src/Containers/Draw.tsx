@@ -2,6 +2,7 @@ import React from 'react';
 import Toolbar from '../Components/Draw/Toolbar';
 import Canvas from '../Components/Draw/Canvas';
 import { useCanvas } from '../Features/useCanvas';
+import { useSession } from '../Context/useSession';
 
 const Draw: React.FC = () => {
   const {
@@ -10,20 +11,24 @@ const Draw: React.FC = () => {
     updateColour, updateSize, clearCanvas,
   } = useCanvas();
   
+  const { role } = useSession();
+  
   return (
     <>
       <Canvas 
         canvasRef={canvasRef} 
-        startDraw={startDraw} 
-        draw={draw} 
-        stopDraw={stopDraw}
+        startDraw={role === 'drawer' ? startDraw : undefined} 
+        draw={role === 'drawer' ? draw : undefined} 
+        stopDraw={role === 'drawer' ? stopDraw : undefined}
       />
-      <Toolbar 
+      
+      {role === 'drawer' &&
+      (<Toolbar 
         setTool={setTool} 
         updateColour={updateColour} 
         updateSize={updateSize} 
         clearCanvas={clearCanvas}
-      />
+      />)}
     </>
   );
 };

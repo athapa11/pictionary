@@ -6,6 +6,14 @@ interface DrawOptions {
   size: number,
 }
 
+interface Drawing {
+  x: number,
+  y: number,
+  type: 'start' | 'draw' | 'stop' | 'clear',
+  colour: string,
+  size: number
+}
+
 export const useCanvas = () => {
   const connection = useSignalR();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -16,6 +24,41 @@ export const useCanvas = () => {
   const [tool, setTool] = useState<string>('pen');
   const [options, setOptions] = useState<DrawOptions>({ colour: "black", size: 6 });
 
+  // register listeners and handle
+  useEffect(() => {
+    if(!connection) return;
+
+    const handleDrawing = (drawing: Drawing) => {
+      if(!contextRef.current) return;
+      
+      const context = contextRef.current;
+
+      if(drawing.type == 'start') {
+        context.beginPath();
+        context.strokeStyle = drawing.colour;
+        context.lineWidth = drawing.size;
+        context.moveTo(drawing.x, drawing.y);
+      }
+      else if(drawing.type == 'draw') {
+        context.lineTo(drawing.x, drawing.y);
+        context.stroke();
+      }
+      else if(drawing.type == 'stop') {
+        context.closePath();
+      }
+      else if(drawing.type == 'clear') {
+        const canvas = canvasRef.current;
+        if(canvas && contextRef.current){
+          contextRef.current.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+    }
+    connection.on('GetDrawing', handleDrawing);
+
+    return () => {
+      connection.off('GetDrawing', handleDrawing);
+    };
+  }, [connection]);
 
   // initialise canvas
   useEffect(() => {
@@ -66,18 +109,6 @@ export const useCanvas = () => {
   }, [options]);
 
 
-  // websocket listener for draw events
-  // useEffect(() => 
-  // {
-  //   connection.on("RecieveDrawing", (data: any) => {
-  //     // handle
-  //   });
-    
-  //   return () => {
-  //     connection.off("RecieveDrawing");
-  //   };
-  // }, [connection]);
-
   // get scaled mouse position
   const getMousePosition = (e: MouseEvent<HTMLCanvasElement>) => 
   {
@@ -94,6 +125,7 @@ export const useCanvas = () => {
 
 
   const updateColour = (colour: string) => { 
+    setTool('pen');
     setOptions((prev) => ({ ...prev, colour }));
   };
 
@@ -108,7 +140,17 @@ export const useCanvas = () => {
       contextRef.current.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    // connection.send("SendDrawing", { ... });
+    const payload = {
+      x: 0,
+      y: 0,
+      type: 'clear',
+      colour: '',
+      size: optionsRef.current.size
+    }
+
+    connection.send("SendDrawing", payload)
+    .then(() => console.log('sent: ', payload))
+    .catch(err => console.log('SendDrawing failed: ', err));
   };
 
 
@@ -130,7 +172,17 @@ export const useCanvas = () => {
     contextRef.current.moveTo(x, y); // set mouse position in canvas
     setIsDrawing(true);
 
-    // connection.send("SendDrawing", { ... });
+    const payload = {
+      x,
+      y,
+      type: 'start',
+      colour: tool === 'rubber' ? '#FFFFFF' : optionsRef.current.colour,
+      size: optionsRef.current.size
+    }
+
+    connection.send("SendDrawing", payload)
+    .then(() => console.log('sent: ', payload))
+    .catch(err => console.log('SendDrawing failed: ', err));
   };
 
 
@@ -142,18 +194,40 @@ export const useCanvas = () => {
     contextRef.current.lineTo(x, y);
     contextRef.current.stroke();
 
-    // connection.send("SendDrawing", { ... });
+    const payload = {
+      x,
+      y,
+      type: 'draw',
+      colour: tool === 'rubber' ? '#FFFFFF' : optionsRef.current.colour,
+      size: optionsRef.current.size
+    }
+
+    connection.send("SendDrawing", payload)
+    .then(() => console.log("sent: ", payload))
+    .catch(err => console.log('SendDrawing failed: ', err));
   };
 
 
   // listener for onmouseup + onmouseleave (stop drawing)
-  const stopDraw = (e: MouseEvent<HTMLCanvasElement>) => {
+  const stopDraw = (_e: MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return; // guard to only trigger stopdraw when drawing
+
     if(contextRef.current){
       contextRef.current.closePath();
     }
     setIsDrawing(false);
 
-    // connection.send("SendDrawing", { ... });
+    const payload = {
+      x: 0,
+      y: 0,
+      type: 'stop',
+      colour: optionsRef.current.colour,
+      size: optionsRef.current.size
+    }
+
+    connection.send("SendDrawing", payload)
+    .then(() => console.log('sent: ', payload))
+    .catch(err => console.log('SendDrawing failed: ', err));
   };
 
   return {
