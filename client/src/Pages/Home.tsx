@@ -30,7 +30,7 @@ const Home: React.FC = () =>
         />
         <button 
           type='submit'
-          className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-4 rounded' 
+          className='bg-lime-400 hover:bg-blue-700 text-white font-bold py-1 px-4 rounded' 
         >
           Join
         </button>

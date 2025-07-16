@@ -11,11 +11,11 @@ const Scoreboard: React.FC = () => {
   return (
     <>
       {playersRanked.map((player, index) => (
-        <div key={player.id} className='flex flex-row py-1 px-2 bg-blue-400 rounded-lg'>
-          <span className='w-auto font-bold text-lg'>#{index + 1}</span>
+        <div key={player.name} className='flex flex-row py-1 px-2 mb-1 bg-white rounded-lg text-[#0e1115]'>
+          <span className='w-auto font-bold text-lg'> #{index + 1} </span>
           <div className='flex-grow flex flex-col items-center'>
-            <span className='font-medium'>{player.name}</span>
-            <span className='text-sm'>{player.score} points</span>
+            <span className='font-medium'> {player.name} </span>
+            <span className='text-sm'>{player.score} points </span>
           </div>
         </div>
       ))}

@@ -6,7 +6,7 @@ function App() {
   return(
     <SignalRProvider>
       <SessionProvider>
-        <div className='min-h-screen bg-blue-950 text-[#e9eef2]'>
+        <div className='min-h-screen bg-blue-900 text-[#e9eef2]'>
           <Outlet/>
         </div>
       </SessionProvider>
