@@ -14,7 +14,7 @@ type Role = 'drawer' | 'guesser' | null;
 interface SessionContextType {
   players: Player[];
   currentPlayer: Player | null;
-  word: string | null;
+  word: string;
   role: Role;
   joinSession: (playerName: string) => void;
 }
@@ -30,7 +30,7 @@ export const SessionProvider = ({children}: {children: React.ReactNode}) =>
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [role, setRole] = useState<Role>(null);
-  const [word, setWord] = useState<string | null>(null);
+  const [word, setWord] = useState<string>('');
 
   useEffect(() => {
     if (connection?.state === HubConnectionState.Connected && !currentPlayer) {
@@ -59,9 +59,9 @@ export const SessionProvider = ({children}: {children: React.ReactNode}) =>
       setWord(word);
     }
 
-    const onStartGuessing = () => {
+    const onStartGuessing = (word: string, _drawerName: string) => {
       setRole('guesser');
-      setWord(null);
+      setWord(word);
     }
 
     connection.on("PlayerJoined", onPlayerJoined);
