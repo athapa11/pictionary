@@ -77,7 +77,7 @@ namespace server.Hubs
       await Clients.Client(drawer.ConnectionId).SendAsync("StartDrawing", word);
 
       // tell guessers
-      await Clients.AllExcept(drawer.ConnectionId).SendAsync("StartGuessing", drawer.Name);
+      await Clients.AllExcept(drawer.ConnectionId).SendAsync("StartGuessing", word, drawer.Name);
     }
   }
 }
